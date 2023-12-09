@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "ブログ本文取得",
     "version": "1.0",
-    "permissions": ["activeTab"],
+    "permissions": ["activeTab", "notifications", "storage"],
     "action": {
       "default_popup": "popup.html"
     },
