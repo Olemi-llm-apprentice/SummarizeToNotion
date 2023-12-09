@@ -10,11 +10,14 @@
     </style>
   </head>
   <body>
-    <h3>ブログ本文取得</h3>
+    <h1>ブログ本文取得</h1>
     <input type="text" id="api-key" placeholder="Enter OpenAI API Key">
+    <button id="save-api-key">Save OpenAI API Key</button>
+    <input type="text" id="notion-secret-key" placeholder="Enter Notion Secret Key">
+    <input type="text" id="notion-database-id" placeholder="Enter Notion Database ID">
+    <button id="save-notion-credentials">Save Notion Credentials</button>
     <button id="check-api-key">APIキー確認</button>
-    <button id="save-api-key">Save API Key</button>
-    <button id="get-text">本文取得</button>
+    <button id="get-text">Notion登録</button>
     <div id="article-text"></div>
     <div id="article-title"></div>
     <script src="popup.js"></script>
