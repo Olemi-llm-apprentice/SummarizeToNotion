@@ -1,8 +1,8 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.message === 'getArticleText') {
-    let article = document.querySelector('article');
-    if (article) {
-      sendResponse({text: article.innerText});
+    let body = document.querySelector('body');
+    if (body) {
+      sendResponse({text: body.innerText});
     } else {
       sendResponse({text: ''});
     }
