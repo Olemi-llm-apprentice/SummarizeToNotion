@@ -1,27 +1,33 @@
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.message === 'getArticleText') {
-    chrome.tabs.sendMessage(
-      request.tabId,
-      { message: 'getArticleText' },
-      response => {
-        let now = new Date();  // Get the current date and time
-        chrome.storage.sync.get(['apiKey'], async function(result) {
-          let apiKey = result.apiKey;
-          let summary = await callOpenAI(apiKey, response.text);
-          let data = JSON.stringify({title: response.title, timestamp: now,summary: summary.choices[0].message.content, text: response.text});  // Store text, title, and timestamp in JSON
-          console.log(data); 
-          chrome.notifications.create({
-              type: 'basic',
-              iconUrl: 'icon.png',  // Uncomment this line
-              title: 'Retrieved Data',
-              message: 'Your message here'  // Replace 'Your message here' with 'data'
-            }); // Display the data in a notification
-          // sendResponse({status: "success"});  // Send a response back
-        });
-      }
-    );
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      let url = tabs[0].url;  // Get the URL of the current tab
+      chrome.tabs.sendMessage(
+        request.tabId,
+        { message: 'getArticleText' },
+        response => {
+          let now = new Date();  // Get the current date and time
+          chrome.storage.sync.get(['apiKey'], async function(result) {
+            let apiKey = result.apiKey;
+            let text = response.text;
+            if (text && text.length > 10000) {
+              text = text.substring(0, 10000);  // Keep only the first 10000 characters
+            }
+            let summary = await callOpenAI(apiKey, text);
+            let data = JSON.stringify({title: response.title, timestamp: now, url: url, summary: summary.choices[0].message.content, text: text});  // Add URL to the JSON
+            console.log(data); 
+            chrome.notifications.create({
+                type: 'basic',
+                iconUrl: 'icon.png',
+                title: 'Retrieved Data',
+                message: 'Your message here'
+              });
+          });
+        }
+      );
+    });
   }
-  return true;  // This is necessary as the response is sent asynchronously
+  return true;
 });
 
 async function callOpenAI(apiKey, text) {
