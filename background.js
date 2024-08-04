@@ -56,7 +56,7 @@ async function processArticleData(response, url) {
   try {
     let { apiKey, secretKey, databaseId } = await getCredentials();
     console.log('クレデンシャル取得成功');
-    let text = response.text.substring(0, 10000);
+    let text = response.text.substring(0, 100000);
     let summary = await callOpenAI(apiKey, text);
     console.log('OpenAI呼び出し成功');
     let tags = await generateTags(apiKey, text);
@@ -70,11 +70,11 @@ async function processArticleData(response, url) {
         タグ: { multi_select: tags.map(tag => ({ name: tag })) },
         作成日: { date: { start: now.toISOString() } },
         セレクト: { select: { name: '未読' } },
-        テキスト: { rich_text: [{ text: { content: text.substring(0, 2000) } }] },
+        テキスト: { rich_text: [{ text: { content: text } }] },
       }
     });
 
-    await addRecordToNotionDatabase(data, secretKey, databaseId);
+    await addRecordToNotionDatabase(data, secretKey, databaseId, url, tags, now, text);
     console.log('Notionデータベースに追加成功');
     showNotification('登録が完了しました');
   } catch (error) {
@@ -98,7 +98,7 @@ async function getCredentials() {
 async function callOpenAI(apiKey, text, purpose = 'summarize') {
   let prompt = '';
   if (purpose === 'summarize') {
-    prompt = '以下の記事を要約して日本語で記述してください。重要なポイントを網羅し、読みやすく簡潔な文章で表現してください。';
+    prompt = '以下の記事を要約して日本語で記述してください。重要なポイントを網羅し、読みやすく簡潔な文章で表現してください。Notion用の記法で出力すること';
   } else if (purpose === 'generateTags') {
     prompt = '以下の文章から関連するタグを5つ、日本語でカンマ区切りで出力してください';
   }
@@ -133,7 +133,7 @@ async function generateTags(apiKey, text) {
   return tags;
 }
 
-async function addRecordToNotionDatabase(data, secretKey, databaseId) {
+async function addRecordToNotionDatabase(data, secretKey, databaseId, url, tags, now, text) {
   const parsedData = JSON.parse(data);
 
   const response = await fetch('https://api.notion.com/v1/pages', {
@@ -147,6 +147,10 @@ async function addRecordToNotionDatabase(data, secretKey, databaseId) {
       parent: { database_id: databaseId },
       properties: {
         タイトル: { title: [{ text: { content: parsedData.properties.タイトル.title[0].text.content } }] },
+        URL: { url: url },
+        タグ: { multi_select: tags.map(tag => ({ name: tag })) },
+        作成日: { date: { start: now.toISOString() } },
+        セレクト: { select: { name: '未読' } },
       },
       children: [
         {
@@ -170,13 +174,7 @@ async function addRecordToNotionDatabase(data, secretKey, databaseId) {
             rich_text: [{ type: 'text', text: { content: '本文' } }]
           }
         },
-        {
-          object: 'block',
-          type: 'paragraph',
-          paragraph: {
-            rich_text: [{ type: 'text', text: { content: parsedData.properties.テキスト.rich_text[0].text.content } }] // 修正箇所 (同様に変更)
-          }
-        },
+        ...splitTextIntoParagraphs(text),
       ]
     })
   });
@@ -188,6 +186,23 @@ async function addRecordToNotionDatabase(data, secretKey, databaseId) {
   }
 
   return await response.json();
+}
+
+function splitTextIntoParagraphs(text) {
+  const paragraphs = [];
+  const MAX_LENGTH = 2000;
+
+  for (let i = 0; i < text.length; i += MAX_LENGTH) {
+    paragraphs.push({
+      object: 'block',
+      type: 'paragraph',
+      paragraph: {
+        rich_text: [{ type: 'text', text: { content: text.substring(i, i + MAX_LENGTH) } }]
+      }
+    });
+  }
+
+  return paragraphs;
 }
 
 function showNotification(message) {
