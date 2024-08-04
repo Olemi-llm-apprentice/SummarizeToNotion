@@ -1,26 +1,25 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    #input-fields {
-      display: flex;
-      flex-direction: column;
-    }
-    #input-fields input {
-      margin-bottom: 5px;
-    }
-  </style>
-</head>
-<body>
-  <h1>Summarize To Notion</h1>
-  <div id="input-fields">
+  <head>
+    <meta charset="UTF-8">
+    <style>
+      #get-text {
+        width: auto;  /* ボタンの幅を自動に設定 */
+        white-space: nowrap;  /* テキストを折り返さないように設定 */
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Summarize To Notion</h1>
     <input type="text" id="api-key" placeholder="Enter OpenAI API Key">
+    <button id="save-api-key">Save OpenAI API Key</button>
     <input type="text" id="notion-secret-key" placeholder="Enter Notion Secret Key">
     <input type="text" id="notion-database-id" placeholder="Enter Notion Database ID">
-  </div>
-  <button id="save-credentials">Save Credentials</button>
-  <button id="get-text">Notion登録</button>
-  <script src="popup.js"></script>
-</body>
+    <button id="save-notion-credentials">Save Notion Credentials</button>
+    <button id="check-api-key">APIキー確認</button>
+    <button id="get-text">Notion登録</button>
+    <div id="article-text"></div>
+    <div id="article-title"></div>
+    <script src="popup.js"></script>
+  </body>
 </html>
