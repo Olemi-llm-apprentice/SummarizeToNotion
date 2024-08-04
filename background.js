@@ -32,13 +32,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 function getPageContent() {
-  let article = document.querySelector('article');
-  let body = document.querySelector('body');
-  let title = document.title;
-  if (article && article.innerText.length > 20) {
-    return { text: article.innerText, title: title };
-  } else if (body) {
-    return { text: body.innerText, title: title };
+  const article = document.querySelector('article');
+  const title = document.title;
+  let images = [];
+
+  if (article) {
+    // articleタグ内の画像のみ抽出
+    const imageElements = Array.from(article.querySelectorAll('img'));
+
+    // 画像の解像度をチェックして、適切な画像のみ抽出
+    images = imageElements.filter(img => {
+      return img.naturalWidth >= 70 && img.naturalHeight >= 70; // 例: 100x100px以上の画像
+    }).map(img => img.src);
+
+    return { text: article.innerText, title: title, images: images };
   } else {
     return { error: 'テキストを取得できませんでした' };
   }
@@ -71,7 +78,8 @@ async function processArticleData(response, url) {
         作成日: { date: { start: now.toISOString() } },
         セレクト: { select: { name: '未読' } },
         テキスト: { rich_text: [{ text: { content: text } }] },
-      }
+      },
+      images: response.images, // ここに images を追加
     });
 
     await addRecordToNotionDatabase(data, secretKey, databaseId, url, tags, now, text);
@@ -135,6 +143,7 @@ async function generateTags(apiKey, text) {
 
 async function addRecordToNotionDatabase(data, secretKey, databaseId, url, tags, now, text) {
   const parsedData = JSON.parse(data);
+  // const text = parsedData.properties.テキスト.rich_text[0].text.content;
 
   const response = await fetch('https://api.notion.com/v1/pages', {
     method: 'POST',
@@ -174,7 +183,26 @@ async function addRecordToNotionDatabase(data, secretKey, databaseId, url, tags,
             rich_text: [{ type: 'text', text: { content: '本文' } }]
           }
         },
+        // テキストを2000文字以下に分割して複数のparagraphブロックとして追加
         ...splitTextIntoParagraphs(text),
+        // 画像URLをそのままNotionページに埋め込む
+        ...parsedData.images.map(imageUrl => ({
+          object: 'block',
+          type: 'paragraph',
+          paragraph: {
+            rich_text: [
+              {
+                type: 'text',
+                text: {
+                  content: imageUrl,
+                  link: {
+                    url: imageUrl
+                  }
+                }
+              }
+            ]
+          }
+        })),
       ]
     })
   });
