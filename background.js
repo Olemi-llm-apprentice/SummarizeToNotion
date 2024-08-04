@@ -183,26 +183,19 @@ async function addRecordToNotionDatabase(data, secretKey, databaseId, url, tags,
             rich_text: [{ type: 'text', text: { content: '本文' } }]
           }
         },
-        // テキストを2000文字以下に分割して複数のparagraphブロックとして追加
-        ...splitTextIntoParagraphs(text),
         // 画像URLをそのままNotionページに埋め込む
         ...parsedData.images.map(imageUrl => ({
           object: 'block',
-          type: 'paragraph',
-          paragraph: {
-            rich_text: [
-              {
-                type: 'text',
-                text: {
-                  content: imageUrl,
-                  link: {
-                    url: imageUrl
-                  }
-                }
-              }
-            ]
+          type: 'image',
+          image: {
+            type: 'external',
+            external: {
+              url: imageUrl
+            }
           }
         })),
+        // テキストを2000文字以下に分割して複数のparagraphブロックとして追加
+        ...splitTextIntoParagraphs(text),
       ]
     })
   });
