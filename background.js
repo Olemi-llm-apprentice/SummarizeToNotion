@@ -66,8 +66,11 @@ async function processArticleData(response, url) {
     let text = response.text.substring(0, 100000);
     let summary = await callOpenAI(apiKey, text);
     console.log('OpenAI呼び出し成功');
-    let tags = await generateTags(apiKey, text);
+    // generateTags 関数に渡す引数を変更
+    let tags = await generateTags(apiKey, summary.choices[0].message.content); 
     console.log('タグ生成成功');
+
+    
 
     let data = JSON.stringify({
       properties: {
@@ -118,7 +121,7 @@ async function callOpenAI(apiKey, text, purpose = 'summarize') {
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'gpt-4o-mini-2024-07-18',
       messages: [
         { role: 'system', 'content': prompt },
         { role: 'user', 'content': text },
