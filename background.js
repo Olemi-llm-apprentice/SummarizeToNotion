@@ -134,6 +134,8 @@ async function generateTags(apiKey, text) {
 }
 
 async function addRecordToNotionDatabase(data, secretKey, databaseId) {
+  const parsedData = JSON.parse(data);
+
   const response = await fetch('https://api.notion.com/v1/pages', {
     method: 'POST',
     headers: {
@@ -143,9 +145,42 @@ async function addRecordToNotionDatabase(data, secretKey, databaseId) {
     },
     body: JSON.stringify({
       parent: { database_id: databaseId },
-      ...JSON.parse(data)
+      properties: {
+        タイトル: { title: [{ text: { content: parsedData.properties.タイトル.title[0].text.content } }] },
+      },
+      children: [
+        {
+          object: 'block',
+          type: 'heading_2',
+          heading_2: {
+            rich_text: [{ type: 'text', text: { content: '要約' } }]
+          }
+        },
+        {
+          object: 'block',
+          type: 'paragraph',
+          paragraph: {
+            rich_text: [{ type: 'text', text: { content: parsedData.properties.要約内容.rich_text[0].text.content } }] // 修正箇所
+          }
+        },
+        {
+          object: 'block',
+          type: 'heading_2',
+          heading_2: {
+            rich_text: [{ type: 'text', text: { content: '本文' } }]
+          }
+        },
+        {
+          object: 'block',
+          type: 'paragraph',
+          paragraph: {
+            rich_text: [{ type: 'text', text: { content: parsedData.properties.テキスト.rich_text[0].text.content } }] // 修正箇所 (同様に変更)
+          }
+        },
+      ]
     })
   });
+
 
   if (!response.ok) {
     const errorText = await response.text();
