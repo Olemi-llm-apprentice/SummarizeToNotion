@@ -1,21 +1,26 @@
 {
-    "manifest_version": 3,
-    "name": "Summarize To Notion",
-    "version": "1.0",
-    "permissions": ["activeTab", "notifications", "storage"],
-    "action": {
-      "default_popup": "popup.html"
-    },
-    "background": {
-      "service_worker": "background.js"
-    },
-    "content_scripts": [
-      {
-        "matches": ["<all_urls>"],
-        "js": ["content.js"]
-      }
-    ],
-    "icons": {
-      "16": "icon.png"
+  "manifest_version": 3,
+  "name": "Summarize To Notion",
+  "version": "1.0",
+  "description": "ブログ記事などを要約してNotionに保存するChrome拡張機能",
+  "permissions": ["activeTab", "storage", "notifications", "scripting"],
+  "host_permissions": [
+    "https://api.notion.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
     }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
 }
