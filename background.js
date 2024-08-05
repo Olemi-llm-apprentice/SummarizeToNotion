@@ -19,8 +19,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             sendResponse({ error: 'スクリプトの実行に失敗しました' });
           } else if (results && results[0]) {
             const result = await results[0].result;
-            processArticleData(result, url);
+            showNotification('記事の処理を開始しました');
             sendResponse({ success: true });
+            processArticleData(result, url);
           } else {
             console.error('無効な結果:', results);
             sendResponse({ error: '無効な結果を受信しました' });
@@ -271,7 +272,7 @@ function showNotification(message) {
   chrome.notifications.create({
     type: 'basic',
     iconUrl: 'icon.png',
-    title: '通知',
+    title: 'Summarize To Notion',
     message: message
   });
 }

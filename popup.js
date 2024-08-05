@@ -42,10 +42,23 @@ document.getElementById('get-text').addEventListener('click', function () {
       },
       (response) => {
         console.log(response);
+        if (response && response.success) {
+          showNotification('処理を開始しました');
+        }
       }
     );
   });
 });
+
+function showNotification(message) {
+  const notification = document.createElement('div');
+  notification.textContent = message;
+  notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg';
+  document.body.appendChild(notification);
+  setTimeout(() => {
+    notification.remove();
+  }, 3000);
+}
 
 // 保存されたAPIKeyを読み込む
 chrome.storage.sync.get(['apiKey', 'secretKey', 'databaseId'], function (result) {
