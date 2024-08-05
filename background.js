@@ -288,9 +288,370 @@ async function callOpenAI(apiKey, text, purpose = 'summarize') {
       /*
       以下の記事を要約し、日本語で記述してください。
 
-      * 要約: 重要なポイントを網羅し、読みやすく簡潔な文章で表現してください。Notion用の記法で出力してください。
-      * 翻訳: 元の記事が日本語でない場合は、要約の下に原文を日本語に翻訳した文章を続けて出力してください。翻訳は正確さを重視してください。
+      * 要約: 重要なポイントを網羅し、読みやすく簡潔な文章で表現してください。以下のNotionリッチテキストの記述に沿った記法で出力してください。
+      ====
+リッチテキスト
+Notionはリッチテキストを使用して、ユーザーがコンテンツをカスタマイズできるようにします。リッチテキストとは、カスタマイズ可能なさまざまな方法でコンテンツのスタイル設定やフォーマットが可能なタイプのドキュメントを指します。これには、イタリック体、フォント サイズ、フォントの色の使用などのスタイル設定の決定や、ハイパーリンクやコード ブロックの使用などの書式設定が含まれます。
 
+Notionは、ページ内のブロックがどのように表現されるかを示すために、ブロックオブジェクトにリッチテキストオブジェクトを含めます。リッチ テキストをサポートするブロックには、リッチ テキスト オブジェクトが含まれます。ただし、すべてのブロックタイプがリッチテキストを提供するわけではありません。
+
+「ブロックの取得」または「ブロックの子の取得」エンドポイントを使用してページからブロックを取得すると、リッチテキストオブジェクトの配列がブロックオブジェクトに含まれます(使用可能な場合)。開発者は、この配列を使用して、ブロックのプレーン テキスト () を取得したり、ブロックに適用されているすべてのリッチ テキスト スタイルと書式設定オプションを取得したりできます。plain_text
+
+リッチテキストオブジェクトの例
+
+{
+  "type": "text",
+  "text": {
+    "content": "Some words ",
+    "link": null
+  },
+  "annotations": {
+    "bold": false,
+    "italic": false,
+    "strikethrough": false,
+    "underline": false,
+    "code": false,
+    "color": "default"
+  },
+  "plain_text": "Some words ",
+  "href": null
+}
+📘
+多くのブロックタイプはリッチテキストをサポートしています。サポートされている場合、オブジェクトはブロックオブジェクトに含まれます。すべてのオブジェクトにはプロパティが含まれており、開発者はNotionブロックからフォーマットされていないテキストにアクセスするのに便利です。rich_texttyperich_textplain_text
+
+各リッチテキストオブジェクトには、次のフィールドが含まれています。
+
+畑	種類	形容	値の例
+type	string(列挙型)	このリッチテキストオブジェクトのタイプ。指定できる型の値は、、です。"text""mention""equation"	"text"
+text| |mentionequation	object	タイプ固有の設定を含むオブジェクト。
+
+タイプ固有の値の詳細については、以下のリッチテキストタイプオブジェクトのセクションを参照してください。	例については、以下のリッチテキストタイプのオブジェクトのセクションを参照してください。
+annotations	object	リッチテキストオブジェクトのスタイル設定に使用される情報。詳細については、以下の注釈オブジェクトのセクションを参照してください。	例については、以下の注釈オブジェクトのセクションを参照してください。
+plain_text	string	注釈のないプレーンテキスト。	"Some words "
+href	string(オプション)	このテキストで言及されているリンクまたはNotionのURL(存在する場合)。	"https://www.notion.so/Avocado-d093f1d200464ce78b36e58a3f0d8043"
+注釈オブジェクト
+すべてのリッチテキストオブジェクトには、リッチテキストのスタイルを設定するオブジェクトが含まれています。 次のフィールドが含まれます。annotationsannotations
+
+財産	種類	形容	値の例
+bold	boolean	テキストを太字にするかどうか。	true
+italic	boolean	テキストが斜体かどうか。	true
+strikethrough	boolean	テキストに取り消し線が引かれているかどうか。	false
+underline	boolean	テキストに下線を付けるかどうか。	false
+code	boolean	テキストが .code style	true
+color	string(列挙型)	テキストの色。可能な値は次のとおりです。
+
+- "blue"
+- "blue_background"
+- "brown"
+- "brown_background"
+- "default"
+- "gray"
+- "gray_background"
+- "green"
+- "green_background"
+- "orange"
+-"orange_background"
+- "pink"
+- "pink_background"
+- "purple"
+- "purple_background"
+- "red"
+- "red_background”
+- "yellow"
+- "yellow_background"	"green"
+リッチテキストタイプオブジェクト
+方程式
+Notionは、インラインLaTeX方程式を、タイプ値を持つリッチテキストオブジェクトとしてサポートしています。対応する方程式タイプオブジェクトには、次のものが含まれます。"equation"
+
+畑	種類	形容	値の例
+expression	string	インライン方程式を表す LaTeX 文字列。	"\frac{{ - b \pm \sqrt {b^2 - 4ac} }}{{2a}}"
+リッチテキストオブジェクトの例equation
+JSONの
+
+{
+  "type": "equation",
+  "equation": {
+    "expression": "E = mc^2"
+  },
+  "annotations": {
+    "bold": false,
+    "italic": false,
+    "strikethrough": false,
+    "underline": false,
+    "code": false,
+    "color": "default"
+  },
+  "plain_text": "E = mc^2",
+  "href": null
+}
+言及
+メンションオブジェクトは、データベース、日付、リンクプレビューメンション、ページ、テンプレートメンション、またはユーザーのインラインメンションを表します。NotionのUIでは、ユーザーが参照の名前を入力すると、メンションが作成されます。@
+
+リッチテキストオブジェクトの値が の場合、対応するオブジェクトには次のものが含まれます。type"mention"mention
+
+畑	種類	形容	値の例
+type	string(列挙型)	インライン メンションのタイプ。可能な値は次のとおりです。
+
+- "database"
+- "date"
+- "link_preview"
+- "page"
+- "template_mention"
+- "user"	"user"
+database| | | | |datelink_previewpagetemplate_mentionuser	object	タイプ固有の設定を含むオブジェクト。詳細については、以下のメンションタイプオブジェクトのセクションを参照してください。	値の例については、以下のメンションタイプオブジェクトのセクションを参照してください。
+データベースメンションタイプオブジェクト
+データベース・メンションには、対応するフィールド内にデータベース参照が含まれます。データベース参照は、データベース ID に対応するキーと文字列値 (UUIDv4) を持つオブジェクトです。databaseid
+
+インテグレーションがメンションされたデータベースにアクセスできない場合、メンションはIDのみで返されます。タイトルとなる値は と表示され、注釈オブジェクトの値はデフォルトです。plain_text"Untitled"
+
+メンションのリッチテキストオブジェクトの例mentiondatabase
+
+JSONの
+
+{
+  "type": "mention",
+  "mention": {
+    "type": "database",
+    "database": {
+      "id": "a1d8501e-1ac1-43e9-a6bd-ea9fe6c8822b"
+    }
+  },
+  "annotations": {
+    "bold": false,
+    "italic": false,
+    "strikethrough": false,
+    "underline": false,
+    "code": false,
+    "color": "default"
+  },
+  "plain_text": "Database with test things",
+  "href": "https://www.notion.so/a1d8501e1ac143e9a6bdea9fe6c8822b"
+}
+日付メンションタイプオブジェクト
+日付メンションには、対応するフィールド内に日付プロパティ値オブジェクトが含まれます。date
+
+メンションのリッチテキストオブジェクトの例mentiondate
+
+JSONの
+
+{
+  "type": "mention",
+  "mention": {
+    "type": "date",
+    "date": {
+      "start": "2022-12-16",
+      "end": null
+    }
+  },
+  "annotations": {
+    "bold": false,
+    "italic": false,
+    "strikethrough": false,
+    "underline": false,
+    "code": false,
+    "color": "default"
+  },
+  "plain_text": "2022-12-16",
+  "href": null
+}
+リンクプレビューメンションタイプオブジェクト
+ユーザーがリンクプレビューをメンションとして共有することを選択した場合、API はリンクプレビューのメンションを値 のリッチテキストオブジェクトとして扱います。リンクプレビューリッチテキストメンションには、リンクプレビューメンションの作成に使用されるオブジェクトを含む対応するオブジェクトが含まれています。typelink_previewlink_previewurl
+
+メンションのリッチテキストオブジェクトの例mentionlink_preview
+
+JSONの
+
+{
+  "type": "mention",
+  "mention": {
+    "type": "link_preview",
+    "link_preview": {
+      "url": "https://workspace.slack.com/archives/C04PF0F9QSD/z1671139297838409?thread_ts=1671139274.065079&cid=C03PF0F9QSD"
+    }
+  },
+  "annotations": {
+    "bold": false,
+    "italic": false,
+    "strikethrough": false,
+    "underline": false,
+    "code": false,
+    "color": "default"
+  },
+  "plain_text": "https://workspace.slack.com/archives/C04PF0F9QSD/z1671139297838409?thread_ts=1671139274.065079&cid=C03PF0F9QSD",
+  "href": "https://workspace.slack.com/archives/C04PF0F9QSD/z1671139297838409?thread_ts=1671139274.065079&cid=C03PF0F9QSD"
+}
+ページメンションタイプオブジェクト
+ページメンションには、対応するフィールド内にページ参照が含まれます。ページ参照は、ページ ID に対応するプロパティと文字列値 (UUIDv4) を持つオブジェクトです。pageid
+
+インテグレーションがメンションされたページにアクセスできない場合、メンションはIDのみで返されます。タイトルとなる値は と表示され、注釈オブジェクトの値はデフォルトです。plain_text"Untitled"
+
+メンションのリッチテキストオブジェクトの例mentionpage
+
+JSONの
+
+{
+  "type": "mention",
+  "mention": {
+    "type": "page",
+    "page": {
+      "id": "3c612f56-fdd0-4a30-a4d6-bda7d7426309"
+    }
+  },
+  "annotations": {
+    "bold": false,
+    "italic": false,
+    "strikethrough": false,
+    "underline": false,
+    "code": false,
+    "color": "default"
+  },
+  "plain_text": "This is a test page",
+  "href": "https://www.notion.so/3c612f56fdd04a30a4d6bda7d7426309"
+}
+テンプレートメンションタイプオブジェクト
+NotionのUIのテンプレートボタン内のコンテンツには、プレースホルダーの日付や、テンプレートが複製されたときに入力されるユーザーメンションを含めることができます。テンプレートメンションタイプのオブジェクトには、これらの入力された値が含まれます。
+
+テンプレート メンション リッチ テキスト オブジェクトには、 または .template_mentiontype"template_mention_date""template_mention_user"
+
+キーが の場合、リッチテキストオブジェクトには次のフィールドが含まれます。type"template_mention_date"template_mention_date
+
+畑	種類	形容	値の例
+template_mention_date	string(列挙型)	日付メンションのタイプ。可能な値は、 と です。"today""now"	"today"
+メンションのリッチテキストオブジェクトの例mentiontemplate_mention_date
+
+JSONの
+
+{
+  "type": "mention",
+  "mention": {
+    "type": "template_mention",
+    "template_mention": {
+      "type": "template_mention_date",
+      "template_mention_date": "today"
+    }
+  },
+  "annotations": {
+    "bold": false,
+    "italic": false,
+    "strikethrough": false,
+    "underline": false,
+    "code": false,
+    "color": "default"
+  },
+  "plain_text": "@Today",
+  "href": null
+}
+タイプキーが の場合、リッチテキストオブジェクトには次のフィールドが含まれます。"template_mention_user"template_mention_user
+
+畑	種類	形容	値の例
+template_mention_user	string(列挙型)	ユーザーメンションのタイプ。可能な値は のみです。"me"	"me"
+メンションのリッチテキストオブジェクトの例mentiontemplate_mention_user
+
+JSONの
+
+{
+  "type": "mention",
+  "mention": {
+    "type": "template_mention",
+    "template_mention": {
+      "type": "template_mention_user",
+      "template_mention_user": "me"
+    }
+  },
+  "annotations": {
+    "bold": false,
+    "italic": false,
+    "strikethrough": false,
+    "underline": false,
+    "code": false,
+    "color": "default"
+  },
+  "plain_text": "@Me",
+  "href": null
+}
+ユーザーメンションタイプオブジェクト
+リッチテキストオブジェクトの値が の場合、対応するユーザーフィールドにはユーザーオブジェクトが含まれます。type"user"
+
+📘
+インテグレーションがメンションされたユーザーに対してまだアクセスできない場合、ユーザーの名前は .統合を更新してユーザーがアクセスできるようにするには、統合設定ページで統合機能を更新します。plain_text"@Anonymous"
+
+メンションのリッチテキストオブジェクトの例mentionuser
+
+JSONの
+
+{
+  "type": "mention",
+  "mention": {
+    "type": "user",
+    "user": {
+      "object": "user",
+      "id": "b2e19928-b427-4aad-9a9d-fde65479b1d9"
+    }
+  },
+  "annotations": {
+    "bold": false,
+    "italic": false,
+    "strikethrough": false,
+    "underline": false,
+    "code": false,
+    "color": "default"
+  },
+  "plain_text": "@Anonymous",
+  "href": null
+}
+テキスト
+リッチテキストオブジェクトの値が の場合、対応するフィールドには、次のオブジェクトが含まれます。type"text"text
+
+畑	種類	形容	値の例
+content	string	テキストの実際のテキスト内容。	"Some words "
+link	object(オプション)	このテキスト内の任意のインライン リンクに関する情報を含むオブジェクト (含まれている場合)。
+
+テキストにインライン リンクが含まれている場合、オブジェクト キーは で、値は URL の文字列 Web アドレスです。
+
+テキストにインライン リンクがない場合、値は です。urlnull	{ "url": "https://developers.notion.com/" }
+リンクのないリッチテキストオブジェクトの例text
+JSONの
+
+{
+  "type": "text",
+  "text": {
+    "content": "This is an ",
+    "link": null
+  },
+  "annotations": {
+    "bold": false,
+    "italic": false,
+    "strikethrough": false,
+    "underline": false,
+    "code": false,
+    "color": "default"
+  },
+  "plain_text": "This is an ",
+  "href": null
+}
+リンク付きのリッチテキストオブジェクトの例text
+JSONの
+
+{
+  "type": "text",
+  "text": {
+    "content": "inline link",
+    "link": {
+      "url": "https://developers.notion.com/"
+    }
+  },
+  "annotations": {
+    "bold": false,
+    "italic": false,
+    "strikethrough": false,
+    "underline": false,
+    "code": false,
+    "color": "default"
+  },
+  "plain_text": "inline link",
+  "href": "https://developers.notion.com/"
+}
+      ====
       記事:
       */
     `;
