@@ -32,20 +32,42 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 function getPageContent() {
-  const article = document.querySelector('article');
   const title = document.title;
+  let text = '';
   let images = [];
 
-  if (article) {
-    // articleタグ内の画像のみ抽出
-    const imageElements = Array.from(article.querySelectorAll('img'));
-
-    // 画像の解像度をチェックして、適切な画像のみ抽出
-    images = imageElements.filter(img => {
-      return img.naturalWidth >= 70 && img.naturalHeight >= 70; // 例: 100x100px以上の画像
+  function extractImages(element) {
+    const imageElements = Array.from(element.querySelectorAll('img'));
+    return imageElements.filter(img => {
+      return img.naturalWidth >= 70 && img.naturalHeight >= 70;
     }).map(img => img.src);
+  }
 
-    return { text: article.innerText, title: title, images: images };
+  function extractMainContent(element) {
+    // 不要な要素を除外
+    const excludeSelectors = 'header, footer, nav, aside, script, style';
+    const excludeElements = element.querySelectorAll(excludeSelectors);
+    excludeElements.forEach(el => el.remove());
+
+    // 残りのテキストを取得
+    return element.innerText;
+  }
+
+  // まず、articleタグを探す
+  const article = document.querySelector('article');
+
+  if (article) {
+    text = article.innerText;
+    images = extractImages(article);
+  } else {
+    // articleタグがない場合、body全体から抽出
+    const body = document.body;
+    text = extractMainContent(body);
+    images = extractImages(body);
+  }
+
+  if (text) {
+    return { text: text, title: title, images: images };
   } else {
     return { error: 'テキストを取得できませんでした' };
   }
