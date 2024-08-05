@@ -105,11 +105,12 @@ async function processArticleData(response, url) {
     let text = response.text.substring(0, 100000);
     let summary = await callOpenAI(apiKey, text);
     console.log('OpenAI呼び出し成功');
-    // generateTags 関数に渡す引数を変更
-    let tags = await generateTags(apiKey, summary.choices[0].message.content); 
+    let tags = await generateTags(apiKey, summary.choices[0].message.content);
     console.log('タグ生成成功');
 
-    
+    // 画像URLの検証
+    let validImages = await validateImages(response.images);
+    console.log('有効な画像URL:', validImages);
 
     let data = JSON.stringify({
       properties: {
@@ -121,7 +122,7 @@ async function processArticleData(response, url) {
         セレクト: { select: { name: '未読' } },
         テキスト: { rich_text: [{ text: { content: text } }] },
       },
-      images: response.images, // ここに images を追加
+      images: validImages, // 検証済みの画像URLを使用
     });
 
     await addRecordToNotionDatabase(data, secretKey, databaseId, url, tags, now, text);
@@ -130,6 +131,141 @@ async function processArticleData(response, url) {
   } catch (error) {
     console.error('記事データの処理中にエラーが発生しました:', error);
     showNotification('エラーが発生しました: ' + error.message);
+  }
+}
+
+async function validateImages(images) {
+  let validImages = [];
+  for (let imageUrl of images) {
+    try {
+      // URLの形式を確認
+      const url = new URL(imageUrl);
+      // HTTPSのみを許可
+      if (url.protocol !== 'https:') {
+        console.warn('Invalid image URL protocol:', imageUrl);
+        continue;
+      }
+
+      const response = await fetch(imageUrl, { method: 'HEAD' });
+      if (response.ok && response.headers.get('content-type').startsWith('image/')) {
+        validImages.push(imageUrl);
+      } else {
+        console.warn('Invalid image URL or content type:', imageUrl);
+      }
+    } catch (error) {
+      console.warn('Error validating image URL:', imageUrl, error);
+    }
+  }
+  return validImages;
+}
+
+async function addRecordToNotionDatabase(data, secretKey, databaseId, url, tags, now, text) {
+  const parsedData = JSON.parse(data);
+
+  let children = [
+    {
+      object: 'block',
+      type: 'heading_2',
+      heading_2: {
+        rich_text: [{ type: 'text', text: { content: '要約' } }]
+      }
+    },
+    ...splitTextIntoParagraphs(parsedData.properties.要約内容.rich_text[0].text.content),
+    {
+      object: 'block',
+      type: 'heading_2',
+      heading_2: {
+        rich_text: [{ type: 'text', text: { content: '本文' } }]
+      }
+    },
+    ...splitTextIntoParagraphs(text)
+  ];
+
+  // 画像ブロックを追加
+  if (parsedData.images && parsedData.images.length > 0) {
+    for (const imageUrl of parsedData.images) {
+      children.push({
+        object: 'block',
+        type: 'image',
+        image: {
+          type: 'external',
+          external: {
+            url: imageUrl
+          }
+        }
+      });
+    }
+  }
+
+  try {
+    const response = await fetch('https://api.notion.com/v1/pages', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${secretKey}`,
+        'Content-Type': 'application/json',
+        'Notion-Version': '2022-06-28'
+      },
+      body: JSON.stringify({
+        parent: { database_id: databaseId },
+        properties: {
+          タイトル: { title: [{ text: { content: parsedData.properties.タイトル.title[0].text.content } }] },
+          URL: { url: url },
+          タグ: { multi_select: tags.map(tag => ({ name: tag })) },
+          作成日: { date: { start: now.toISOString() } },
+          セレクト: { select: { name: '未読' } },
+        },
+        children: children
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Notion API error: ${response.status} ${errorText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Notionデータベースへの追加中にエラーが発生しました:', error);
+    // エラーが発生した場合、画像ブロックをテキストに変換して再試行
+    children = children.map(block => {
+      if (block.type === 'image') {
+        return {
+          object: 'block',
+          type: 'paragraph',
+          paragraph: {
+            rich_text: [{ type: 'text', text: { content: `画像URL: ${block.image.external.url}` } }]
+          }
+        };
+      }
+      return block;
+    });
+
+    const retryResponse = await fetch('https://api.notion.com/v1/pages', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${secretKey}`,
+        'Content-Type': 'application/json',
+        'Notion-Version': '2022-06-28'
+      },
+      body: JSON.stringify({
+        parent: { database_id: databaseId },
+        properties: {
+          タイトル: { title: [{ text: { content: parsedData.properties.タイトル.title[0].text.content } }] },
+          URL: { url: url },
+          タグ: { multi_select: tags.map(tag => ({ name: tag })) },
+          作成日: { date: { start: now.toISOString() } },
+          セレクト: { select: { name: '未読' } },
+        },
+        children: children
+      })
+    });
+
+    if (!retryResponse.ok) {
+      const retryErrorText = await retryResponse.text();
+      throw new Error(`Retry Notion API error: ${retryResponse.status} ${retryErrorText}`);
+    }
+
+    return await retryResponse.json();
   }
 }
 
@@ -148,7 +284,16 @@ async function getCredentials() {
 async function callOpenAI(apiKey, text, purpose = 'summarize') {
   let prompt = '';
   if (purpose === 'summarize') {
-    prompt = '以下の記事を要約して日本語で記述してください。重要なポイントを網羅し、読みやすく簡潔な文章で表現してください。Notion用の記法で出力すること';
+    prompt = `
+      /*
+      以下の記事を要約し、日本語で記述してください。
+
+      * 要約: 重要なポイントを網羅し、読みやすく簡潔な文章で表現してください。Notion用の記法で出力してください。
+      * 翻訳: 元の記事が日本語でない場合は、要約の下に原文を日本語に翻訳した文章を続けて出力してください。翻訳は正確さを重視してください。
+
+      記事:
+      */
+    `;
   } else if (purpose === 'generateTags') {
     prompt = '以下の文章から関連するタグを5つ、日本語でカンマ区切りで出力してください';
   }
@@ -165,7 +310,7 @@ async function callOpenAI(apiKey, text, purpose = 'summarize') {
         { role: 'system', 'content': prompt },
         { role: 'user', 'content': text },
       ],
-      max_tokens: 4000,
+      max_tokens: 16000,
       temperature: 0,
     }),
   });
@@ -181,74 +326,6 @@ async function generateTags(apiKey, text) {
   let response = await callOpenAI(apiKey, text, 'generateTags');
   let tags = response.choices[0].message.content.split(',').map((tag) => tag.trim());
   return tags;
-}
-
-async function addRecordToNotionDatabase(data, secretKey, databaseId, url, tags, now, text) {
-  const parsedData = JSON.parse(data);
-  // const text = parsedData.properties.テキスト.rich_text[0].text.content;
-
-  const response = await fetch('https://api.notion.com/v1/pages', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${secretKey}`,
-      'Content-Type': 'application/json',
-      'Notion-Version': '2022-06-28'
-    },
-    body: JSON.stringify({
-      parent: { database_id: databaseId },
-      properties: {
-        タイトル: { title: [{ text: { content: parsedData.properties.タイトル.title[0].text.content } }] },
-        URL: { url: url },
-        タグ: { multi_select: tags.map(tag => ({ name: tag })) },
-        作成日: { date: { start: now.toISOString() } },
-        セレクト: { select: { name: '未読' } },
-      },
-      children: [
-        {
-          object: 'block',
-          type: 'heading_2',
-          heading_2: {
-            rich_text: [{ type: 'text', text: { content: '要約' } }]
-          }
-        },
-        {
-          object: 'block',
-          type: 'paragraph',
-          paragraph: {
-            rich_text: [{ type: 'text', text: { content: parsedData.properties.要約内容.rich_text[0].text.content } }] // 修正箇所
-          }
-        },
-        {
-          object: 'block',
-          type: 'heading_2',
-          heading_2: {
-            rich_text: [{ type: 'text', text: { content: '本文' } }]
-          }
-        },
-        // 画像URLをそのままNotionページに埋め込む
-        ...parsedData.images.map(imageUrl => ({
-          object: 'block',
-          type: 'image',
-          image: {
-            type: 'external',
-            external: {
-              url: imageUrl
-            }
-          }
-        })),
-        // テキストを2000文字以下に分割して複数のparagraphブロックとして追加
-        ...splitTextIntoParagraphs(text),
-      ]
-    })
-  });
-
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Notion API error: ${response.status} ${errorText}`);
-  }
-
-  return await response.json();
 }
 
 function splitTextIntoParagraphs(text) {
