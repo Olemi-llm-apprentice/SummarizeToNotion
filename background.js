@@ -13,12 +13,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           target: { tabId: tabs[0].id },
           function: getPageContent,
         },
-        (results) => {
+        async (results) => {
           if (chrome.runtime.lastError) {
             console.error('スクリプト実行エラー:', chrome.runtime.lastError);
             sendResponse({ error: 'スクリプトの実行に失敗しました' });
           } else if (results && results[0]) {
-            processArticleData(results[0].result, url);
+            const result = await results[0].result;
+            processArticleData(result, url);
             sendResponse({ success: true });
           } else {
             console.error('無効な結果:', results);
@@ -31,7 +32,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-function getPageContent() {
+async function getPageContent() {
   const title = document.title;
   let text = '';
   let images = [];
@@ -39,7 +40,22 @@ function getPageContent() {
   function extractImages(element) {
     const imageElements = Array.from(element.querySelectorAll('img'));
     return imageElements.filter(img => {
-      return img.naturalWidth >= 70 && img.naturalHeight >= 70;
+      // 画像が完全にロードされているか確認
+      if (img.complete) {
+        return img.naturalWidth >= 500 && img.naturalHeight >= 500;
+      } else {
+        // 画像がまだロードされていない場合、src属性のサイズを確認
+        const tempImg = new Image();
+        tempImg.src = img.src;
+        return new Promise((resolve) => {
+          tempImg.onload = () => {
+            resolve(tempImg.naturalWidth >= 500 && tempImg.naturalHeight >= 500);
+          };
+          tempImg.onerror = () => {
+            resolve(false);
+          };
+        });
+      }
     }).map(img => img.src);
   }
 
@@ -58,12 +74,12 @@ function getPageContent() {
 
   if (article) {
     text = article.innerText;
-    images = extractImages(article);
+    images = await extractImages(article);
   } else {
     // articleタグがない場合、body全体から抽出
     const body = document.body;
     text = extractMainContent(body);
-    images = extractImages(body);
+    images = await extractImages(body);
   }
 
   if (text) {
