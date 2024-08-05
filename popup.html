@@ -1,26 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <style>
-    #input-fields {
-      display: flex;
-      flex-direction: column;
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Summarize To Notion</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#4F46E5',
+            secondary: '#10B981',
+          }
+        }
+      }
     }
-    #input-fields input {
-      margin-bottom: 5px;
-    }
-  </style>
+  </script>
 </head>
-<body>
-  <h1>Summarize To Notion</h1>
-  <div id="input-fields">
-    <input type="text" id="api-key" placeholder="Enter OpenAI API Key">
-    <input type="text" id="notion-secret-key" placeholder="Enter Notion Secret Key">
-    <input type="text" id="notion-database-id" placeholder="Enter Notion Database ID">
+<body class="bg-gray-100 text-gray-800 p-6">
+  <div class="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
+    <h1 class="text-2xl font-bold mb-6 text-center text-primary">
+      <i class="fas fa-book-reader mr-2"></i>Summarize To Notion
+    </h1>
+    <div class="space-y-4">
+      <div class="relative">
+        <input type="password" id="api-key" placeholder="OpenAI API Key" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+        <button class="toggle-password absolute right-3 top-3 text-gray-400" data-target="api-key">
+          <i class="fas fa-eye"></i>
+        </button>
+      </div>
+      <div class="relative">
+        <input type="password" id="notion-secret-key" placeholder="Notion Secret Key" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+        <button class="toggle-password absolute right-3 top-3 text-gray-400" data-target="notion-secret-key">
+          <i class="fas fa-eye"></i>
+        </button>
+      </div>
+      <div class="relative">
+        <input type="password" id="notion-database-id" placeholder="Notion Database ID" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+        <button class="toggle-password absolute right-3 top-3 text-gray-400" data-target="notion-database-id">
+          <i class="fas fa-eye"></i>
+        </button>
+      </div>
+    </div>
+    <div class="mt-6 space-y-4">
+      <button id="save-credentials" class="w-full bg-primary hover:bg-primary-dark text-white font-bold py-2 px-4 rounded-md transition duration-200 ease-in-out transform hover:scale-105">
+        <i class="fas fa-save mr-2"></i>APIKeyを保存
+      </button>
+      <button id="get-text" class="w-full bg-secondary hover:bg-secondary-dark text-white font-bold py-2 px-4 rounded-md transition duration-200 ease-in-out transform hover:scale-105">
+        <i class="fas fa-file-import mr-2"></i>Notionに登録
+      </button>
+    </div>
   </div>
-  <button id="save-credentials">Save Credentials</button>
-  <button id="get-text">Notion登録</button>
   <script src="popup.js"></script>
 </body>
 </html>

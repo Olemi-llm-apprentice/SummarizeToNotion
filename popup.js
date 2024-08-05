@@ -1,3 +1,38 @@
+// パスワード表示/非表示の切り替え
+document.querySelectorAll('.toggle-password').forEach(button => {
+  button.addEventListener('click', function() {
+    const targetId = this.getAttribute('data-target');
+    const targetInput = document.getElementById(targetId);
+    const icon = this.querySelector('i');
+
+    if (targetInput.type === 'password') {
+      targetInput.type = 'text';
+      icon.classList.remove('fa-eye');
+      icon.classList.add('fa-eye-slash');
+    } else {
+      targetInput.type = 'password';
+      icon.classList.remove('fa-eye-slash');
+      icon.classList.add('fa-eye');
+    }
+  });
+});
+
+// APIKeyを保存
+document.getElementById('save-credentials').addEventListener('click', function () {
+  let apiKey = document.getElementById('api-key').value;
+  let secretKey = document.getElementById('notion-secret-key').value;
+  let databaseId = document.getElementById('notion-database-id').value;
+
+  chrome.storage.sync.set(
+    { apiKey: apiKey, secretKey: secretKey, databaseId: databaseId },
+    function () {
+      console.log('APIKey saved');
+      alert('APIKey saved');
+    }
+  );
+});
+
+// Notionに登録
 document.getElementById('get-text').addEventListener('click', function () {
   chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
     chrome.runtime.sendMessage(
@@ -12,21 +47,7 @@ document.getElementById('get-text').addEventListener('click', function () {
   });
 });
 
-document.getElementById('save-credentials').addEventListener('click', function () {
-  let apiKey = document.getElementById('api-key').value;
-  let secretKey = document.getElementById('notion-secret-key').value;
-  let databaseId = document.getElementById('notion-database-id').value;
-
-  chrome.storage.sync.set(
-    { apiKey: apiKey, secretKey: secretKey, databaseId: databaseId },
-    function () {
-      console.log('Credentials saved');
-      alert('Credentials saved');
-    }
-  );
-});
-
-// ページ読み込み時に、保存されたクレデンシャルを表示
+// 保存されたAPIKeyを読み込む
 chrome.storage.sync.get(['apiKey', 'secretKey', 'databaseId'], function (result) {
   if (result.apiKey) {
     document.getElementById('api-key').value = result.apiKey;
