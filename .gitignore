@@ -1,2 +1,9 @@
 test.json
 test.json
+.history
+.vscode
+.idea
+.DS_Store
+.gitignore
+.gitkeep
+.git
